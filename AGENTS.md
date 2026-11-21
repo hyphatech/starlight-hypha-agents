@@ -8,7 +8,7 @@ human or agent. Users start at [README.md](README.md).
 
 ```sh
 make setup    # the dependencies, by Bun
-make test     # the pages' Markdown, llms.txt, the skill and the folder
+make test     # the pages' Markdown, llms.txt and the folder
 make lint     # the plugin's types
 ```
 
@@ -17,7 +17,7 @@ make lint     # the plugin's types
 ```
 src/index.ts    the plugin: its options read, the build's hook added
 src/options.ts  the options and their defaults
-src/agents.ts   a page as Markdown, llms.txt and the skill, from the pages
+src/agents.ts   a page as Markdown and llms.txt, from the pages
 src/build.ts    the files written into the built site, and the folder
 test/           the files generated from a site of the fixture's own
 ```
@@ -25,7 +25,7 @@ test/           the files generated from a site of the fixture's own
 ## Rules that must hold
 
 - **What agents read is generated from the pages a person reads.** The
-  Markdown, llms.txt and the skill come from the same source. Why: the two
+  Markdown and llms.txt come from the same source. Why: the two
   must say the same. Tests: `test/agents.test.ts`.
 - **The build replaces the folder whole**, so `git diff` after a build is
   its check and no page removed stays. Test: `test/agents.test.ts`.

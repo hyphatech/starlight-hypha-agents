@@ -1,6 +1,6 @@
 // A Hypha Stack library's docs, for agents: each page as Markdown and
 // llms.txt in the built site, and with `dir` a folder the library installs
-// with its package, and a skill that sends an agent to it.
+// with its package.
 
 import type { StarlightPlugin } from "@astrojs/starlight/types";
 import { agentsBuild } from "./build";

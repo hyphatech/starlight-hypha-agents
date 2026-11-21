@@ -1,5 +1,4 @@
 import { z } from "astro/zod";
-import { skillName } from "./agents";
 
 export const optionsSchema = z
   .object({
@@ -10,19 +9,8 @@ export const optionsSchema = z
     preamble: z.string().optional(),
     // Markdown under a sidebar group's heading, by its label.
     groups: z.record(z.string(), z.string()).default({}),
-    // Written with `dir`: the skill that sends an agent to the pages.
-    skill: z
-      .union([
-        z.literal(false),
-        z.object({
-          name: z.string().regex(skillName, "lower case letters, digits and dashes, at most 64").optional(),
-          package: z.string().optional(),
-          description: z.string().max(1024).optional(),
-          before: z.string().optional(),
-          instead: z.array(z.string()).default([]),
-        }),
-      ])
-      .default({ instead: [] }),
-  });
+  })
+  // An option it does not know, `skill` from 0.1.0 say, stops the build.
+  .strict();
 
 export type Options = z.input<typeof optionsSchema>;
