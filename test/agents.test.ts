@@ -34,7 +34,6 @@ function generate(target: Target, warn: (m: string) => void = () => {}) {
     options: {
       preamble: "## Writing it\n\nA widget is named for what it does.",
       groups: { Guides: "Each guide shows a widget's code." },
-      skill: { package: "widgets-core", instead: ["a raw `<button>`, where Widgets.Button is one"] },
     },
     target,
     warn,
@@ -198,7 +197,6 @@ describe("llms.txt", () => {
       "pages/guide/plain.md",
       "pages/hidden.md",
       "pages/index.md",
-      "skills/widgets/SKILL.md",
     ]);
   });
 
@@ -207,67 +205,6 @@ describe("llms.txt", () => {
     expect(files.get("llms.txt")).toBe(
       "# w\n\n- [An example](pages/guide/example.md): A widget, its code shown from the files it is built from.\n- [Plain](pages/guide/plain.md)\n- [Elsewhere](pages/hidden.md): A page no sidebar lists.\n- [Widgets](pages/index.md): Widgets for everyone.\n",
     );
-  });
-});
-
-describe("the skill", () => {
-  const skill = folder().get("skills/widgets/SKILL.md")!;
-
-  test("is named for the site, and says when to use it", () => {
-    expect(skill.startsWith('---\nname: widgets\ndescription: "Use before writing or changing OCaml code that uses widgets: Widgets for everyone."\n---\n')).toBe(
-      true,
-    );
-  });
-
-  test("sends an agent to the catalogue installed with the package, the site's only where none is", () => {
-    expect(skill).toContain("`$(opam var widgets-core:doc)/llms.txt`");
-    expect(skill).toContain("read https://example.com/widgets/llms.txt, which may document a newer release");
-    expect(skill).toContain("`$(opam var widgets-core:doc)/pages/<page>.md`");
-    expect(skill).toContain("write by hand only what none of them does");
-  });
-
-  test("copies no page", () => {
-    expect(skill).not.toContain("print_endline");
-    expect(skill).not.toContain("An example");
-  });
-
-  test("lists what is written by hand instead of a part", () => {
-    expect(skill).toContain("- a raw `<button>`, where Widgets.Button is one\n");
-    expect(skill).not.toContain("have been seen");
-  });
-
-  test("says what the agent is about to do, where given", () => {
-    const files = agentFiles({
-      pages: [],
-      aliases,
-      sidebar,
-      title: "Lint",
-      options: { groups: {}, skill: { before: "acting on a finding", instead: [] } },
-      target: { kind: "folder", base: "" },
-    });
-    expect(files.get("skills/lint/SKILL.md")).toContain("Read it before acting on a finding, and build");
-  });
-
-  test("is the folder's alone, and its description given where one is", () => {
-    expect([...site().keys()].some((k) => k.startsWith("skills/"))).toBe(false);
-    const files = agentFiles({
-      pages: [],
-      aliases,
-      sidebar,
-      title: "Widgets Kit",
-      options: { groups: {}, skill: { description: "Use for widgets: a: b.", instead: [] } },
-      target: { kind: "folder", base: "" },
-    });
-    const own = files.get("skills/widgets-kit/SKILL.md")!;
-    expect(own).toContain('description: "Use for widgets: a: b."');
-    expect(own).not.toContain("Only where it is not installed");
-    expect(own).not.toContain("by hand instead");
-  });
-
-  test("refuses a name Agent Skills does not take", () => {
-    expect(() =>
-      agentFiles({ pages: [], aliases, sidebar, title: "!!!", options: { groups: {}, skill: { instead: [] } }, target: { kind: "folder", base: "" } }),
-    ).toThrow(/give skill\.name/);
   });
 });
 
@@ -286,7 +223,7 @@ describe("the build", () => {
     site: "https://example.com/",
     vite: { resolve: { alias: aliases } },
   } as unknown as AstroConfig;
-  const build = agentsBuild({ dir: `${out}/agents`, groups: {}, skill: { instead: [] } }, { title: "widgets", sidebar }, astro);
+  const build = agentsBuild({ dir: `${out}/agents`, groups: {} }, { title: "widgets", sidebar }, astro);
   const done = () => build["astro:build:done"]({ dir: new URL(`file://${out}/site/`), logger });
   afterAll(() => rmSync(out, { recursive: true, force: true }));
 
@@ -296,22 +233,25 @@ describe("the build", () => {
     expect(readFileSync(join(out, "site/guide/example.md"), "utf-8")).toContain('```ocaml title="hello.ml"');
     expect(readFileSync(join(out, "agents/llms.txt"), "utf-8")).toContain("(pages/guide/plain.md)");
     expect(readFileSync(join(out, "agents/pages/guide/example.md"), "utf-8")).toContain('```ocaml title="hello.ml"');
-    expect(existsSync(join(out, "agents/skills/widgets/SKILL.md"))).toBe(true);
+    expect(existsSync(join(out, "agents/skills"))).toBe(false);
   });
 
-  test("replaces the folder whole, so a page removed or edited by hand does not stay", () => {
+  test("replaces the folder whole, so a page removed, a file edited by hand or 0.1.0's skill does not stay", () => {
+    mkdirSync(join(out, "agents/skills/widgets"), { recursive: true });
+    writeFileSync(join(out, "agents/skills/widgets/SKILL.md"), "---\nname: widgets\n---\n");
     writeFileSync(join(out, "agents/pages/guide/plain.md"), "# Plain, by hand\n");
     mkdirSync(join(out, "agents/pages/old"), { recursive: true });
     writeFileSync(join(out, "agents/pages/old/stale.md"), "# A page since removed\n");
     done();
     expect(readFileSync(join(out, "agents/pages/guide/plain.md"), "utf-8")).not.toContain("by hand");
     expect(existsSync(join(out, "agents/pages/old/stale.md"))).toBe(false);
+    expect(existsSync(join(out, "agents/skills"))).toBe(false);
   });
 });
 
-test("the options: the site's alone by default, a folder and its skill with `dir`", () => {
-  expect(optionsSchema.parse({})).toEqual({ groups: {}, skill: { instead: [] } });
-  expect(optionsSchema.parse({ dir: "../agents", skill: false })).toEqual({ dir: "../agents", groups: {}, skill: false });
-  expect(optionsSchema.safeParse({ skill: { name: "Widgets" } }).success).toBe(false);
+test("the options: the site's alone by default, a folder with `dir`, and nothing it does not know", () => {
+  expect(optionsSchema.parse({})).toEqual({ groups: {} });
+  expect(optionsSchema.parse({ dir: "../agents" })).toEqual({ dir: "../agents", groups: {} });
   expect(optionsSchema.safeParse({ dir: 1 }).success).toBe(false);
+  expect(optionsSchema.safeParse({ skill: { package: "widgets" } }).success).toBe(false);
 });

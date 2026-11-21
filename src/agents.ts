@@ -21,23 +21,6 @@ export interface AgentsOptions {
   preamble?: string;
   // Markdown under a sidebar group's heading, by its label.
   groups: Record<string, string>;
-  // The skill written into the folder, `skills/<name>/SKILL.md`; none where
-  // it is `false`.
-  skill: SkillOptions | false;
-}
-
-export interface SkillOptions {
-  // The skill's name, lower case and dashes; the site's title, so made.
-  name?: string;
-  // The opam package the folder is installed with; the skill's name.
-  package?: string;
-  // When an agent uses it; by default, before writing code with the library.
-  description?: string;
-  // What the skill's agent is about to do, ending "Read it before …";
-  // by default, writing code with the library.
-  before?: string;
-  // What is easily written by hand where a part of the library does it.
-  instead: string[];
 }
 
 export interface Page {
@@ -455,7 +438,7 @@ export function agentFiles(input: {
   sidebar: unknown;
   title: string;
   description?: string;
-  options: Pick<AgentsOptions, "preamble" | "groups"> & { skill?: SkillOptions | false };
+  options: Pick<AgentsOptions, "preamble" | "groups">;
   target: Target;
   warn?: (m: string) => void;
 }): Map<string, string> {
@@ -487,58 +470,5 @@ export function agentFiles(input: {
     "llms.txt",
     tidy([`# ${input.title}`, input.description ? `> ${input.description}` : "", options.preamble ?? "", ...sections].filter(Boolean).join("\n\n")),
   );
-  if (target.kind === "folder" && options.skill) {
-    const skill = skillFile(options.skill, input.title, input.description, target.origin ? `${target.origin}${target.base}/llms.txt` : undefined);
-    files.set(`skills/${skill.name}/SKILL.md`, skill.text);
-  }
   return files;
 }
-
-// A skill's name as Agent Skills takes it: lower case letters, digits and
-// single dashes, at most 64 characters.
-export const skillName = /^(?=.{1,64}$)[a-z0-9]+(-[a-z0-9]+)*$/;
-
-// The skill an agent is given, in the Agent Skills format
-// (https://agentskills.io): not the docs again, but when to read them, where
-// the release's are installed, and to build from the library's parts.
-export function skillFile(
-  options: SkillOptions,
-  title: string,
-  description: string | undefined,
-  online: string | undefined,
-): { name: string; text: string } {
-  const name =
-    options.name ??
-    title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  if (!skillName.test(name)) throw new Error(`starlight-hypha-agents: the skill's name, ${JSON.stringify(name)}, is not lower case letters, digits and dashes; give skill.name`);
-  const pkg = options.package ?? name;
-  const when = (options.description ?? `Use before writing or changing OCaml code that uses ${name}${description ? `: ${description}` : "."}`).replace(/\s+/g, " ").trim();
-  if (when.length > 1024) throw new Error("starlight-hypha-agents: the skill's description is longer than Agent Skills' 1024 characters");
-  const doc = `$(opam var ${pkg}:doc)`;
-  const text = [
-    "---",
-    `name: ${name}`,
-    // A JSON string is a YAML string, its colons and quotes escaped.
-    `description: ${JSON.stringify(when)}`,
-    "---",
-    "",
-    `# ${name}`,
-    "",
-    `${name}'s documentation is installed with its opam package, \`${pkg}\`, at the release the code builds against. Read it before ${options.before ?? `writing code with ${name}`}, and build from the parts it gives.`,
-    "",
-    `1. Read the catalogue, \`${doc}/llms.txt\`: every page, a line each, by what it is for.${online ? ` Only where it is not installed, read ${online}, which may document a newer release than the code builds against.` : ""}`,
-    `2. Read the page of each part the work needs, \`${doc}/pages/<page>.md\`, its examples among them.`,
-    "3. Build from those parts, and write by hand only what none of them does.",
-    ...(options.instead.length
-      ? ["", `## Written by hand instead of a part`, "", `Each of these is easily written by hand where ${name} has a part; look for the part first:`, "", ...options.instead.map((i) => `- ${i}`)]
-      : []),
-    "",
-  ].join("\n");
-  return { name, text };
-}
-
-// The folders the build owns in a folder it writes, beside its llms.txt.
-export const owned = ["pages", "skills"];

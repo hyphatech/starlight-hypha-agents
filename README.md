@@ -8,14 +8,23 @@ of the release it builds against.
 
 This [Starlight](https://starlight.astro.build) plugin ships a library's docs
 with its package. Every page becomes Markdown an agent reads whole, its
-examples included, and the package installs them with a skill that tells the
-agent to read them before it writes code. The docs site serves the same pages
-and an [`llms.txt`](https://llmstxt.org), for an agent online.
+examples included, with an [`llms.txt`](https://llmstxt.org) that lists them,
+and the package installs them at `$(opam var <package>:doc)`. The docs site
+serves the same pages, for an agent online.
+
+An agent reads them only when told to. A library's README gives its users one
+line for their project's `AGENTS.md`:
+
+```md
+Before writing code with widgets, read `$(opam var widgets:doc)/llms.txt` and
+the pages it lists for the parts you need, and use those parts rather than
+writing your own.
+```
 
 ## Install
 
 ```sh
-bun add -d github:hyphatech/starlight-hypha-agents#v0.1.0
+bun add -d github:hyphatech/starlight-hypha-agents#v0.2.0
 ```
 
 ```js
@@ -25,10 +34,9 @@ starlight({
   plugins: [
     starlightThemeHypha(),
     starlightHyphaAgents({
-      dir: "../agents", // from the Astro root: llms.txt, pages/<page>.md, skills/<name>/SKILL.md
+      dir: "../agents", // from the Astro root: llms.txt and pages/<page>.md
       preamble: "What to know before any page, in Markdown.",
       groups: { Reference: "Markdown under a sidebar group's heading." },
-      skill: { package: "widgets", instead: ["a raw `<button>`, where `Widgets.Button` is one"] },
     }),
   ],
 });
@@ -39,12 +47,11 @@ starlight({
 | `dir` | none | The folder the build also writes, for the package to install; none, the site's files alone |
 | `preamble` | none | Markdown after `llms.txt`'s summary, before its groups |
 | `groups` | `{}` | Markdown under a sidebar group's heading, by its label |
-| `skill` | `{}` | With `dir`: `{ name?, package?, description?, before?, instead? }`, or `false` for none. `package` is the opam package, the skill's name unless given; `instead` lists what is easily written by hand where the library has a part |
 
 ## Installed with the package
 
-dune installs the folder into the package's documentation, where the skill
-sends an agent, `$(opam var widgets:doc)/llms.txt`:
+dune installs the folder into the package's documentation,
+`$(opam var widgets:doc)/llms.txt` and the pages beside it:
 
 ```lisp
 (install
@@ -59,7 +66,7 @@ The build replaces the folder whole, so CI checks it by building the docs
 and diffing:
 
 ```sh
-make docs && git diff --exit-code agents/
+make docs && git add --intent-to-add agents/ && git diff --exit-code agents/
 ```
 
 ## Licence

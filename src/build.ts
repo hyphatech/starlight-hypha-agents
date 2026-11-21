@@ -1,13 +1,13 @@
 // The build's files: the site's Markdown and llms.txt, links absolute, into
 // the built site; and, with `dir`, the folder the library commits, links
-// relative, with its skill. The folder is replaced whole, so a page removed
+// relative. The folder is replaced whole, so a page removed
 // leaves nothing behind, and `git diff` after a build is its check.
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AstroConfig, AstroIntegrationLogger } from "astro";
-import { agentFiles, aliasesOf, owned, readPages, type AgentsOptions, type Target } from "./agents";
+import { agentFiles, aliasesOf, readPages, type AgentsOptions, type Target } from "./agents";
 
 export interface Site {
   title: string | Record<string, string>;
@@ -45,8 +45,7 @@ export function agentsBuild(options: AgentsOptions, site: Site, astro: AstroConf
     "astro:build:done"({ dir, logger }: { dir: URL; logger: AstroIntegrationLogger }) {
       write(fileURLToPath(dir), generate("site", logger, true));
       if (!folder) return;
-      for (const sub of owned) rmSync(join(folder, sub), { recursive: true, force: true });
-      rmSync(join(folder, "llms.txt"), { force: true });
+      rmSync(folder, { recursive: true, force: true });
       write(folder, generate("folder", logger, false));
       logger.info(`agents' Markdown written to ${folder}`);
     },
