@@ -1,18 +1,16 @@
 # starlight-hypha-agents
 
-A Hypha Stack library's docs, for the agents that build with it. A
-[Starlight](https://starlight.astro.build) plugin, beside
-[starlight-theme-hypha](https://github.com/hyphatech/starlight-theme-hypha).
+An agent writing code with a Hypha Stack library should know what the library
+already does, or it writes by hand what a part of the library gives. That
+knowledge is in the library's docs, but an opam package installs only its
+README, CHANGES and LICENSE: the agent never sees the docs, and never the docs
+of the release it builds against.
 
-An agent reads a page's source, where an MDX page's examples are imports and
-its demos are components. The build writes each page as plain Markdown, its
-`?raw` imports read into fenced blocks and its live demos left out, with an
-[`llms.txt`](https://llmstxt.org) index from the sidebar:
-
-- **in the built site**, beside each page, links absolute;
-- **in a folder the library commits**, with `dir`, links relative, and a
-  skill in the [Agent Skills](https://agentskills.io) format that sends an
-  agent to the docs installed with the release its code builds against.
+This [Starlight](https://starlight.astro.build) plugin ships a library's docs
+with its package. Every page becomes Markdown an agent reads whole, its
+examples included, and the package installs them with a skill that tells the
+agent to read them before it writes code. The docs site serves the same pages
+and an [`llms.txt`](https://llmstxt.org), for an agent online.
 
 ## Install
 
